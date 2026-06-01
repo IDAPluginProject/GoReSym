@@ -62,6 +62,7 @@ def set_function_signature(ea, typedef):
     idaapi.apply_type(ea, ida_typeinf.parse_decl(typedef, ida_typeinf.PT_SIL), idaapi.TINFO_DEFINITE)
 
 
+
 def import_primitives():
     type_map = {
         "BUILTIN_STRING": "string",
@@ -103,6 +104,7 @@ def main(json_file):
         buf = rp.read()
 
     hints = json.loads(buf)
+
     if iterable(hints["UserFunctions"]):
         for func in hints["UserFunctions"]:
             ida_bytes.del_items(func["Start"])

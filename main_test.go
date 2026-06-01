@@ -68,6 +68,56 @@ func TestAllVersions(t *testing.T) {
 					if !found_interface {
 						t.Errorf("Go %s interface recovery failed", v)
 					}
+					found_single_return := false
+					found_multi_return := false
+					found_unsafe_ptr := false
+					found_ptr := false
+					for _, typ := range data.Types {
+						if typ.Kind != "Func" {
+							continue
+						}
+						// multi-return: func([]uint8) (int, error) — from io.Writer
+						if typ.Str == "func([]uint8) (int, error)" {
+							found_single_return = true
+							if typ.CStr != "tuple(int, error) (_slice_uint8)" {
+								t.Errorf("Go %s func([]uint8)(int,error) CStr wrong: got %q", v, typ.CStr)
+							}
+						}
+						// multi-return: func() (int, bool)
+						if typ.Str == "func() (int, bool)" {
+							found_multi_return = true
+							if !strings.Contains(typ.CStr, "tuple(") {
+								t.Errorf("Go %s func()(int,bool) CStr missing tuple: got %q", v, typ.CStr)
+							}
+						}
+						// func(unsafe.Pointer, unsafe.Pointer) bool — complete signature check
+						if typ.Str == "func(unsafe.Pointer, unsafe.Pointer) bool" {
+							found_unsafe_ptr = true
+							if typ.CStr != "bool (unsafe_Pointer, unsafe_Pointer)" {
+								t.Errorf("Go %s func(unsafe.Pointer, unsafe.Pointer) bool CStr wrong: got %q", v, typ.CStr)
+							}
+						}
+						// func(*os.file) error — complete signature check for pointer param
+						if typ.Str == "func(*os.file) error" {
+							found_ptr = true
+							if typ.CStr != "error (_ptr_os_file)" {
+								t.Errorf("Go %s func(*os.file) error CStr wrong: got %q", v, typ.CStr)
+							}
+						}
+					}
+					if !found_single_return {
+						t.Logf("Go %s func([]uint8)(int,error) not found (may not exist in this version)", v)
+					}
+					if !found_multi_return {
+						t.Logf("Go %s func()(int,bool) not found (may not exist in this version)", v)
+					}
+					if !found_unsafe_ptr {
+						t.Errorf("Go %s no Func type with unsafe_Pointer in CStr found", v)
+					}
+					if !found_ptr {
+						t.Errorf("Go %s no Func type with _ptr_ in CStr found", v)
+					}
+
 				} else {
 					found_interface := false
 					for _, typ := range data.Types {
